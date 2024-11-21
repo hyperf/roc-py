@@ -1,17 +1,16 @@
-from time import sleep
 import asyncio
 
-from roc.channel_manager import ChannelManager
-from roc.packer import Packer
+from roc.request import Request
 from roc.socket import Client
-from roc.packet import Packet
 
 
 async def main():
-    client = Client(host="127.0.0.1", port=9601)
+    client = Client(host="127.0.0.1", port=9502)
     while True:
-        res = await client.request("World")
-        print(res)
+        req = Request(path="/push_interface/sendSms",
+                      params={"mobile": "123123", "templateId": 1, "data": "HelloWorld"})
+        res = await client.request(req)
+        print(res.result)
         await asyncio.sleep(1)
 
 

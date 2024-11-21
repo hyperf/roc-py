@@ -1,12 +1,16 @@
 import socket
 import asyncio
 import struct
+import json
 from asyncio import StreamReader, StreamWriter
 
 from roc.channel_manager import ChannelManager
+from roc.data_formatter import DataFormatter
 from roc.id_generator import IdGenerator
 from roc.packer import Packer
 from roc.packet import Packet
+from roc.request import Request
+from roc.request import Response
 
 
 class SocketException(Exception):
@@ -30,12 +34,13 @@ class Client:
         self.packer: Packer = Packer()
         self.channelManager: ChannelManager = ChannelManager()
         self.idGenerator: IdGenerator = IdGenerator()
+        self.dataFormatter: DataFormatter = DataFormatter()
 
     async def loop(self):
         while True:
             try:
                 prefix = await self.recv(4)
-                length = struct.unpack(">I", prefix.encode())[0]
+                length = struct.unpack(">I", prefix)[0]
                 body = await self.recv(length)
 
                 packet = self.packer.unpack(prefix + body)
@@ -49,13 +54,13 @@ class Client:
                 self.reader = None
                 break
 
-    async def recv(self, length: int) -> str:
-        result = ""
+    async def recv(self, length: int) -> bytes:
+        result: bytes = b''
         while True:
             res = await self.reader.read(length - len(result))
-            if res.decode() == "":
+            if len(res) == 0:
                 raise SocketException("read failed")
-            result += res.decode()
+            result += res
             if len(result) >= length:
                 return result
 
@@ -64,15 +69,15 @@ class Client:
             if self.writer is None:
                 await self.start()
 
-            self.writer.write(self.packer.pack(packet).encode())
-
+            self.writer.write(self.packer.pack(packet))
             return True
         except Exception as exception:
             print(f"发生了异常: {exception}")
             return False
 
-    async def request(self, body: str) -> str:
+    async def request(self, request: Request) -> Response:
         key = self.idGenerator.generate()
+        body = self.dataFormatter.format_request(request)
         packet = Packet(key, body)
         chan = self.channelManager.get(key, True)
 
@@ -82,7 +87,18 @@ class Client:
         if res is False:
             raise RequestException("request failed")
 
-        return res
+        data = json.loads(res)
+
+        if "id" not in data:
+            data["id"] = None
+
+        if "result" not in data:
+            data["result"] = None
+
+        if "error" not in data:
+            data["error"] = None
+
+        return Response(data["id"], data["result"], data["error"])
 
     async def start(self):
         reader, writer = await asyncio.open_connection(self.host, self.port)

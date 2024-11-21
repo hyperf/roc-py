@@ -7,6 +7,12 @@ from roc.packer import Packer
 from roc.packet import Packet
 
 
+class SocketException(Exception):
+    def __init__(self, message, error_code: int = 0):
+        super().__init__(message)
+        self.error_code = error_code
+
+
 class Client:
     def __init__(self, host: str, port: int, packer: Packer):
         self.host = host
@@ -17,24 +23,38 @@ class Client:
 
     async def loop(self):
         while True:
-            prefix = await self.recv_all(4)
-            length = struct.unpack(">I", prefix.encode())[0]
-            body = await self.recv_all(length)
+            try:
+                prefix = await self.recv(4)
+                length = struct.unpack(">I", prefix.encode())[0]
+                body = await self.recv(length)
 
-            packet = self.packer.unpack(prefix + body)
+                packet = self.packer.unpack(prefix + body)
 
-            print(packet)
+                print(packet.body)
 
-    async def recv_all(self, length: int):
+            except SocketException:
+                self.writer = None
+                self.reader = None
+                break
+
+    async def recv(self, length: int):
         result = ""
         while True:
             res = await self.reader.read(length - len(result))
+            if res.decode() == "":
+                raise SocketException("read failed")
             result += res.decode()
             if len(result) >= length:
                 return result
 
     async def send(self, packet: Packet):
-        self.writer.write(self.packer.pack(packet).encode())
+        try:
+            if self.writer is None:
+                await self.start()
+
+            self.writer.write(self.packer.pack(packet).encode())
+        except Exception as exception:
+            print(f"发生了异常: {exception}")
 
     async def start(self):
         reader, writer = await asyncio.open_connection(self.host, self.port)

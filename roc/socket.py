@@ -18,7 +18,7 @@ class Client:
     async def loop(self):
         while True:
             prefix = await self.recv_all(4)
-            length = struct.unpack("I", bytes.fromhex(prefix))[0]
+            length = struct.unpack(">I", prefix.encode())[0]
             body = await self.recv_all(length)
 
             packet = self.packer.unpack(prefix + body)

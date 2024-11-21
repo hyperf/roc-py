@@ -34,3 +34,11 @@ class Response:
 
     def get_error(self) -> dict | None:
         return self.error
+
+
+def make_response(data: dict) -> Response:
+    for key in ["id", "result", "error"]:
+        if key not in data:
+            data[key] = None
+
+    return Response(data["id"], data["result"], data["error"])

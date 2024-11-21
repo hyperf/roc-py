@@ -11,6 +11,7 @@ from roc.packer import Packer
 from roc.packet import Packet
 from roc.request import Request
 from roc.request import Response
+from roc.request import make_response
 
 
 class SocketException(Exception):
@@ -89,16 +90,7 @@ class Client:
 
         data = json.loads(res)
 
-        if "id" not in data:
-            data["id"] = None
-
-        if "result" not in data:
-            data["result"] = None
-
-        if "error" not in data:
-            data["error"] = None
-
-        return Response(data["id"], data["result"], data["error"])
+        return make_response(data)
 
     async def start(self):
         reader, writer = await asyncio.open_connection(self.host, self.port)

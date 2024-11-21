@@ -3,6 +3,8 @@ import asyncio
 import struct
 from asyncio import StreamReader, StreamWriter
 
+from roc.channel_manager import ChannelManager
+from roc.id_generator import IdGenerator
 from roc.packer import Packer
 from roc.packet import Packet
 
@@ -13,13 +15,21 @@ class SocketException(Exception):
         self.error_code = error_code
 
 
+class RequestException(Exception):
+    def __init__(self, message, error_code: int = 0):
+        super().__init__(message)
+        self.error_code = error_code
+
+
 class Client:
-    def __init__(self, host: str, port: int, packer: Packer):
-        self.host = host
-        self.port = port
+    def __init__(self, host: str, port: int):
+        self.host: str = host
+        self.port: int = port
         self.reader: StreamReader | None = None
         self.writer: StreamWriter | None = None
-        self.packer = packer
+        self.packer: Packer = Packer()
+        self.channelManager: ChannelManager = ChannelManager()
+        self.idGenerator: IdGenerator = IdGenerator()
 
     async def loop(self):
         while True:
@@ -30,14 +40,16 @@ class Client:
 
                 packet = self.packer.unpack(prefix + body)
 
-                print(packet.body)
+                chan = self.channelManager.get(packet.id)
+                if chan is not None:
+                    await chan.push(packet.body)
 
             except SocketException:
                 self.writer = None
                 self.reader = None
                 break
 
-    async def recv(self, length: int):
+    async def recv(self, length: int) -> str:
         result = ""
         while True:
             res = await self.reader.read(length - len(result))
@@ -47,14 +59,30 @@ class Client:
             if len(result) >= length:
                 return result
 
-    async def send(self, packet: Packet):
+    async def send(self, packet: Packet) -> bool:
         try:
             if self.writer is None:
                 await self.start()
 
             self.writer.write(self.packer.pack(packet).encode())
+
+            return True
         except Exception as exception:
             print(f"发生了异常: {exception}")
+            return False
+
+    async def request(self, body: str) -> str:
+        key = self.idGenerator.generate()
+        packet = Packet(key, body)
+        chan = self.channelManager.get(key, True)
+
+        await self.send(packet)
+
+        res = await chan.pop()
+        if res is False:
+            raise RequestException("request failed")
+
+        return res
 
     async def start(self):
         reader, writer = await asyncio.open_connection(self.host, self.port)

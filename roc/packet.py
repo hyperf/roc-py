@@ -9,3 +9,6 @@ class Packet:
 
     def is_heartbeat(self):
         return self.id == 0 and (self.body == PING or self.body == PONG)
+
+    def len(self):
+        return len(self.body) + 4

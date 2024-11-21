@@ -7,5 +7,5 @@ class DataFormatter:
         return json.dumps({
             "id": request.get_id(),
             "path": request.get_path(),
-            "params": request.get_params(),
+            "data": request.get_params(),
         })

@@ -1,5 +1,8 @@
 # Hyperf 多路复用 RPC 组件 Python 版本
 
+[![pypi](https://img.shields.io/badge/PyPi-Passed-green?logo=python)](https://pypi.org/project/roc-py/)
+[![Release](https://github.com/hyperf/roc-py/actions/workflows/release.yml/badge.svg)](https://github.com/hyperf/roc-py/actions/workflows/release.yml)
+
 ## 如何使用
 
 ```python

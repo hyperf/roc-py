@@ -12,6 +12,7 @@ from roc.packet import Packet
 from roc.request import Request
 from roc.request import Response
 from roc.request import make_response
+from roc.packet import PING
 
 
 class SocketException(Exception):
@@ -45,11 +46,24 @@ class Client:
                 body = await self.recv(length)
 
                 packet = self.packer.unpack(prefix + body)
+                if packet.is_heartbeat():
+                    continue
 
                 chan = self.channelManager.get(packet.id)
                 if chan is not None:
                     await chan.push(packet.body)
 
+            except SocketException:
+                self.writer = None
+                self.reader = None
+                break
+
+    async def heartbeat(self):
+        while True:
+            try:
+                await self.send(Packet(0, PING))
+
+                await asyncio.sleep(10)
             except SocketException:
                 self.writer = None
                 self.reader = None
@@ -98,3 +112,4 @@ class Client:
         self.writer = writer
 
         asyncio.create_task(self.loop())
+        asyncio.create_task(self.heartbeat())

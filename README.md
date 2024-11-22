@@ -2,6 +2,7 @@
 
 [![pypi](https://img.shields.io/badge/PyPi-Passed-green?logo=python)](https://pypi.org/project/roc-py/)
 [![Release](https://github.com/hyperf/roc-py/actions/workflows/release.yml/badge.svg)](https://github.com/hyperf/roc-py/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/release/hyperf/roc-py)](https://github.com/hyperf/roc-py/actions/workflows/release.yml)
 
 ## 如何使用
 

@@ -7,7 +7,7 @@ setuptools.setup(
     # 包的分发名称，使用字母、数字、_、-
     name="roc-py",
     # 版本号, 版本号规范：https://www.python.org/dev/peps/pep-0440/
-    version="0.1.0",
+    version="__version__",
     # 作者名
     author="limingxinleo",
     # 作者邮箱

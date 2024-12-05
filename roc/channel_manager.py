@@ -23,6 +23,7 @@ class ChannelManager:
         if chan is None:
             return True
 
+        del self.channels[key]
         return chan.close()
 
     def flush(self):

@@ -98,13 +98,16 @@ class Client:
 
         await self.send(packet)
 
-        res = await chan.pop()
-        if res is False:
-            raise RequestException("request failed")
+        try:
+            res = await chan.pop()
+            if res is False:
+                raise RequestException("request failed")
 
-        data = json.loads(res)
+            data = json.loads(res)
 
-        return make_response(data)
+            return make_response(data)
+        finally:
+            self.channelManager.close(key)
 
     async def start(self):
         reader, writer = await asyncio.open_connection(self.host, self.port)
